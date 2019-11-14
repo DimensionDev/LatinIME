@@ -47,8 +47,6 @@ import android.view.Window;
 import android.view.WindowManager;
 import android.view.inputmethod.CompletionInfo;
 import android.view.inputmethod.EditorInfo;
-import android.view.inputmethod.ExtractedText;
-import android.view.inputmethod.ExtractedTextRequest;
 import android.view.inputmethod.InputConnection;
 import android.view.inputmethod.InputMethodSubtype;
 
@@ -97,7 +95,6 @@ import com.android.inputmethod.latin.utils.StatsUtilsManager;
 import com.android.inputmethod.latin.utils.SubtypeLocaleUtils;
 import com.android.inputmethod.latin.utils.ViewLayoutUtils;
 import com.android.inputmethod.pinyin.PinyinIME;
-import com.sujitech.tessercubecore.keyboard.KeyboardEncryptToolBar;
 import com.sujitech.tessercubecore.keyboard.KeyboardExtendView;
 
 import java.io.FileDescriptor;
@@ -120,7 +117,7 @@ import static com.android.inputmethod.latin.utils.RecapitalizeStatus.CAPS_MODE_A
 public class LatinIME extends InputMethodService implements KeyboardActionListener,
         SuggestionStripView.Listener, SuggestionStripViewAccessor,
         DictionaryFacilitator.DictionaryInitializationListener,
-        PermissionsManager.PermissionsResultCallback, KeyboardEncryptToolBar.Listener, PinyinIME.Proxy {
+        PermissionsManager.PermissionsResultCallback, KeyboardExtendView.Listener, PinyinIME.Proxy {
     static final String TAG = LatinIME.class.getSimpleName();
     private static final boolean TRACE = false;
 
@@ -195,38 +192,49 @@ public class LatinIME extends InputMethodService implements KeyboardActionListen
     }
 
     @Override
-    public @Nonnull String requireAllText() {
-        return super.getCurrentInputConnection().getExtractedText(new ExtractedTextRequest(), 0).text.toString();
+    @Nonnull
+    public InputConnection getActualInputConnection() {
+        return super.getCurrentInputConnection();
     }
 
     @Override
-    public void overrideAllText(@Nonnull String text) {
-        InputConnection ic = super.getCurrentInputConnection();
-        int length = ic.getExtractedText(new ExtractedTextRequest(), 0).text.length();
-        ic.deleteSurroundingText(length, 0);
-        ic.commitText(text, text.length());
+    public void finishInput() {
+        mInputLogic.finishInput();
     }
 
-    @Override
-    public String getSelection() {
-        CharSequence text = super.getCurrentInputConnection().getSelectedText(0);
-        if (text == null) {
-            return "";
-        } else {
-            return text.toString();
-        }
-    }
-
-    @Override
-    public void overrideSelection(String text) {
-        InputConnection ic = super.getCurrentInputConnection();
-        ExtractedText extractedText = ic.getExtractedText(new ExtractedTextRequest(), 0);
-        int startIndex = extractedText.startOffset + extractedText.selectionStart;
-        int endIndex = extractedText.startOffset +  extractedText.selectionEnd;
-        ic.setComposingRegion(startIndex, endIndex);
-        ic.setComposingText(text, 1);
-        ic.finishComposingText();
-    }
+    //    @Override
+//    public @Nonnull String requireAllText() {
+//        return super.getCurrentInputConnection().getExtractedText(new ExtractedTextRequest(), 0).text.toString();
+//    }
+//
+//    @Override
+//    public void overrideAllText(@Nonnull String text) {
+//        InputConnection ic = super.getCurrentInputConnection();
+//        int length = ic.getExtractedText(new ExtractedTextRequest(), 0).text.length();
+//        ic.deleteSurroundingText(length, 0);
+//        ic.commitText(text, text.length());
+//    }
+//
+//    @Override
+//    public String getSelection() {
+//        CharSequence text = super.getCurrentInputConnection().getSelectedText(0);
+//        if (text == null) {
+//            return "";
+//        } else {
+//            return text.toString();
+//        }
+//    }
+//
+//    @Override
+//    public void overrideSelection(String text) {
+//        InputConnection ic = super.getCurrentInputConnection();
+//        ExtractedText extractedText = ic.getExtractedText(new ExtractedTextRequest(), 0);
+//        int startIndex = extractedText.startOffset + extractedText.selectionStart;
+//        int endIndex = extractedText.startOffset +  extractedText.selectionEnd;
+//        ic.setComposingRegion(startIndex, endIndex);
+//        ic.setComposingText(text, 1);
+//        ic.finishComposingText();
+//    }
 
     final static class HideSoftInputReceiver extends BroadcastReceiver {
         private final InputMethodService mIms;
@@ -868,9 +876,10 @@ public class LatinIME extends InputMethodService implements KeyboardActionListen
         updateSoftInputWindowLayoutParameters();
         mSuggestionStripView = (SuggestionStripView)view.findViewById(R.id.suggestion_strip_view);
         mKeyboardExtendView = (KeyboardExtendView) view.findViewById(R.id.keyboard_encrypt_view);
+        mKeyboardExtendView.setListener(this);
         if (hasSuggestionStripView()) {
             mSuggestionStripView.setListener(this, view);
-            mSuggestionStripView.setEncryptToolBarListener(this);
+//            mSuggestionStripView.setEncryptToolBarListener(this);
         }
         switchPinyinIMEMode();
 //        if (mKeyboardExtendView != null) {
